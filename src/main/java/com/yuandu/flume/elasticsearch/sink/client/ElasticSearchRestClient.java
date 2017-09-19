@@ -93,7 +93,7 @@ public class ElasticSearchRestClient implements ElasticSearchClient {
 
     @Override
     public void addEvent(Event event, IndexNameBuilder indexNameBuilder, String indexType, long ttlMs) throws Exception {
-        BytesReference content = serializer.getContentBuilder(event).bytes();
+        BytesReference content = serializer.getContentBuilder(event).endObject().bytes();
         Map<String, Map<String, String>> parameters = new HashMap<String, Map<String, String>>();
         Map<String, String> indexParameters = new HashMap<String, String>();
         indexParameters.put(INDEX_PARAM, indexNameBuilder.getIndexName(event));

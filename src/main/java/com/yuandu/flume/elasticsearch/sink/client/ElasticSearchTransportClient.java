@@ -18,22 +18,23 @@
  */
 package com.yuandu.flume.elasticsearch.sink.client;
 
-import com.yuandu.flume.elasticsearch.sink.ElasticSearchEventSerializer;
-import com.yuandu.flume.elasticsearch.sink.ElasticSearchIndexRequestBuilderFactory;
-import com.yuandu.flume.elasticsearch.sink.ElasticSearchSinkConstants;
+import com.yuandu.flume.elasticsearch.sink.*;
 import com.google.common.annotations.VisibleForTesting;
 import javafx.scene.NodeBuilder;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.EventDeliveryException;
-import com.yuandu.flume.elasticsearch.sink.IndexNameBuilder;
+import org.apache.flume.event.SimpleEvent;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.slf4j.Logger;
@@ -42,6 +43,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ElasticSearchTransportClient implements ElasticSearchClient {
 
@@ -161,14 +164,15 @@ public class ElasticSearchTransportClient implements ElasticSearchClient {
         if (indexRequestBuilderFactory == null) {
             indexRequestBuilder = client
                     .prepareIndex(indexNameBuilder.getIndexName(event), indexType)
-                    .setSource(serializer.getContentBuilder(event).bytes());
+                    .setSource(serializer.getContentBuilder(event).endObject().bytes(), XContentType.JSON);
         } else {
             indexRequestBuilder = indexRequestBuilderFactory.createIndexRequest(
                     client, indexNameBuilder.getIndexPrefix(event), indexType, event);
         }
 
         if (ttlMs > 0) {
-            indexRequestBuilder.setTTL(ttlMs);
+            TimeValue timeValue = TimeValue.timeValueMillis(ttlMs);
+            indexRequestBuilder.setTTL(timeValue);
         }
         bulkRequestBuilder.add(indexRequestBuilder);
     }
@@ -225,5 +229,19 @@ public class ElasticSearchTransportClient implements ElasticSearchClient {
     @Override
     public void configure(Context context) {
         //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+
+    public static void main(String[] args) throws IOException {
+        ElasticSearchEventSerializer serializer = new ElasticSearchLogStashEventSerializer();
+        Event event = new SimpleEvent();
+        event.setBody("hollow world".getBytes());
+        Map<String, String> headers = new HashMap<>();
+        headers.put("key", "value");
+        event.setHeaders(headers);
+
+        BytesReference a = serializer.getContentBuilder(event).endObject().bytes();
+        System.out.println(a.utf8ToString());
+
     }
 }

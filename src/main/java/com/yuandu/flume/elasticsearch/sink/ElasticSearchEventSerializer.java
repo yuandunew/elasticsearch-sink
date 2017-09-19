@@ -46,4 +46,5 @@ public interface ElasticSearchEventSerializer extends Configurable,
    *           If an error occurs during serialization
    */
   abstract XContentBuilder getContentBuilder(Event event) throws IOException;
+
 }
